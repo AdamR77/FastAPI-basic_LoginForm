@@ -29,7 +29,7 @@ async def loginForm(request: Request, uname: str = Form(...), psw: str = Form(..
             if json_logins[uname] == psw:
                 return RedirectResponse(url)
     else:
-        return templates.TemplateResponse('error.html', context={'request': request,
+        return templates.TemplateResponse('error_login.html', context={'request': request,
                                                                  'uname': uname, 'psw': psw})
 #endpointy dla dla signup
 
@@ -42,7 +42,8 @@ async def read_signupForm(request: Request):
                                                                   'psw1': psw1, 'psw2': psw2})
 
 @app.post('/signup')
-async def signupForm(request: Request, uname: str = Form(...), psw1: str = Form(...), psw2: str = Form(...)):
+async def signupForm(request: Request, uname: str = Form(...),
+                     psw1: str = Form(...), psw2: str = Form(...)):
     if psw1 == psw2:
         users_dict[uname] = psw1
         logins_data = json.dumps(users_dict)
@@ -50,6 +51,13 @@ async def signupForm(request: Request, uname: str = Form(...), psw1: str = Form(
             outfile.write(logins_data)
         return templates.TemplateResponse('signup_form.html', context={'request': request, 'uname': uname,
                                                                   'psw1': psw1, 'psw2': psw2})
+    else:
+        return templates.TemplateResponse('error_signup.html', context={'request': request, 'uname': uname,
+                                                                  'psw1': psw1, 'psw2': psw2})
+
+
+
+
 
 
 

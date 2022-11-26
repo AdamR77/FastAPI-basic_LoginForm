@@ -23,8 +23,11 @@ async def read_loginForm(request: Request):
 @app.post('/login/')
 async def loginForm(request: Request, uname: str = Form(...), psw: str = Form(...)):
     url = 'https://www.youtube.com/watch?v=mM8nGt4Z8lI'
-    with open('logins.json', 'r') as openfile:
-        json_logins = json.load(openfile)
+    try:
+        with open('logins.json', 'r') as openfile:
+            json_logins = json.load(openfile)
+    except:
+        return {"brak dostępu do bazy (logins) -proszę o rejestracje użytkownika |Sign Up|"}
     for login in json_logins:
         if login == uname:
             if json_logins[uname] == psw:

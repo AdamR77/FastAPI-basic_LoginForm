@@ -22,7 +22,7 @@ async def read_loginForm(request: Request):
 
 @app.post('/login/')
 async def loginForm(request: Request, uname: str = Form(...), psw: str = Form(...)):
-    url = 'https://www.youtube.com/watch?v=mM8nGt4Z8lI'
+    url = 'https://stooq.pl/'
     try:
         with open('logins.json', 'r') as openfile:
             json_logins = json.load(openfile)

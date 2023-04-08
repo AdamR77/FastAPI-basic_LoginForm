@@ -3,7 +3,12 @@ import uvicorn
 from fastapi.templating import Jinja2Templates
 from fastapi import FastAPI, Request, Form
 from fastapi.responses import RedirectResponse
-
+import os
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.image import MIMEImage
+import secrets
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates/")
@@ -58,7 +63,51 @@ async def signupForm(request: Request, uname: str = Form(...),
     else:
         return templates.TemplateResponse('error_signup.html', context={'request': request, 'uname': uname,
                                                                   'psw1': psw1, 'psw2': psw2})
+    
+    @app.post("/register")
+    async def register(request: Request, email: str = Form(...), password: str = Form(...)):
+    # generowanie losowego kodu weryfikacyjnego
+    verification_code = secrets.token_urlsafe(32)
+    # zapisywanie kodu weryfikacyjnego w bazie danych
+    db.store_verification_code(email, verification_code)
 
+    # konfiguracja wiadomości email
+    message = MIMEMultipart()
+    message["From"] = "example@gmail.com"
+    message["To"] = email
+    message["Subject"] = "Verification code"
+
+    # treść wiadomości email
+    text = f"""
+    Hello,
+
+    Thank you for registering. Please click on the following link to verify your email address:
+
+    http://localhost:8000/verify?email={email}&code={verification_code}
+
+    Best regards,
+    Your App Team
+    """
+    message.attach(MIMEText(text, "plain"))
+
+    # wysyłanie wiadomości email
+    with smtplib.SMTP(host="smtp.gmail.com", port=587) as smtp:
+        smtp.starttls()
+        smtp.login("example@gmail.com", "password")
+        smtp.send_message(message)
+
+    return templates.TemplateResponse("registration_success.html", {"request": request})
+
+
+@app.get("/verify")
+async def verify(request: Request, email: str, code: str):
+    # weryfikacja kodu weryfikacyjnego
+    if db.check_verification_code(email, code):
+        db.mark_email_verified(email)
+        return templates.TemplateResponse("verification_success.html", {"request": request})
+    else:
+        return templates.TemplateResponse("verification_failure.html", {"request": request})
+    
 
 
 if __name__ == "__main__":

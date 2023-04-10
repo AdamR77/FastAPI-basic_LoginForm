@@ -1,3 +1,4 @@
+from db import db, Database  # importy dla bazy danych
 import json
 import uvicorn
 from fastapi.templating import Jinja2Templates
@@ -32,13 +33,14 @@ async def loginForm(request: Request, uname: str = Form(...), psw: str = Form(..
         with open('logins.json', 'r') as openfile:
             json_logins = json.load(openfile)
     except:
-        return {"brak dostępu do bazy (logins) -proszę o rejestracje użytkownika |Sign Up|"}
+        return templates.TemplateResponse('error_login.html', context={'request': request,
+                                                                 'uname': uname, 'psw': psw})
     for login in json_logins:
         if login == uname:
             if json_logins[uname] == psw:
                 return RedirectResponse(url)
     else:
-        return templates.TemplateResponse('error_login.html', context={'request': request,
+        return templates.TemplateResponse('error.html', context={'request': request,
                                                                  'uname': uname, 'psw': psw})
 #endpointy dla dla signup
 
@@ -47,56 +49,57 @@ async def read_signupForm(request: Request):
     uname = 'Enter Username'
     psw1 = 'Enter password'
     psw2 = 'Repeat password'
+    email = 'email'
     return templates.TemplateResponse('signup_form.html', context={'request': request, 'uname': uname,
-                                                                  'psw1': psw1, 'psw2': psw2})
+                                                                  'psw1': psw1, 'psw2': psw2, 'email': email})
 
 @app.post('/signup')
 async def signupForm(request: Request, uname: str = Form(...),
-                     psw1: str = Form(...), psw2: str = Form(...)):
+                     psw1: str = Form(...), psw2: str = Form(...), email = Form(...)):
     if psw1 == psw2:
         users_dict[uname] = psw1
         logins_data = json.dumps(users_dict)
         with open("logins.json", "w") as outfile:
             outfile.write(logins_data)
         return templates.TemplateResponse('signup_form.html', context={'request': request, 'uname': uname,
-                                                                  'psw1': psw1, 'psw2': psw2})
+                                                                  'psw1': psw1, 'psw2': psw2, 'email': email})
     else:
         return templates.TemplateResponse('error_signup.html', context={'request': request, 'uname': uname,
-                                                                  'psw1': psw1, 'psw2': psw2})
+                                                                  'psw1': psw1, 'psw2': psw2, 'email': email})
     
     @app.post("/register")
     async def register(request: Request, email: str = Form(...), password: str = Form(...)):
-    # generowanie losowego kodu weryfikacyjnego
-    verification_code = secrets.token_urlsafe(32)
-    # zapisywanie kodu weryfikacyjnego w bazie danych
-    db.store_verification_code(email, verification_code)
+        # generowanie losowego kodu weryfikacyjnego
+        verification_code = secrets.token_urlsafe(32)
+        # zapisywanie kodu weryfikacyjnego w bazie danych
+        db.store_verification_code(email, verification_code)
 
-    # konfiguracja wiadomości email
-    message = MIMEMultipart()
-    message["From"] = "example@gmail.com"
-    message["To"] = email
-    message["Subject"] = "Verification code"
+        # konfiguracja wiadomości email
+        message = MIMEMultipart()
+        message["From"] = "example@gmail.com"
+        message["To"] = email
+        message["Subject"] = "Verification code"
 
-    # treść wiadomości email
-    text = f"""
-    Hello,
+        # treść wiadomości email
+        text = f"""
+        Hello,
 
-    Thank you for registering. Please click on the following link to verify your email address:
+        Thank you for registering. Please click on the following link to verify your email address:
 
-    http://localhost:8000/verify?email={email}&code={verification_code}
+        http://localhost:8000/verify?email={email}&code={verification_code}
 
-    Best regards,
-    Your App Team
-    """
-    message.attach(MIMEText(text, "plain"))
+        Best regards,
+        Your App Team
+        """
+        message.attach(MIMEText(text, "plain"))
 
     # wysyłanie wiadomości email
-    with smtplib.SMTP(host="smtp.gmail.com", port=587) as smtp:
-        smtp.starttls()
-        smtp.login("example@gmail.com", "password")
-        smtp.send_message(message)
+        with smtplib.SMTP(host="smtp.gmail.com", port=587) as smtp:
+            smtp.starttls()
+            smtp.login("example@gmail.com", "password")
+            smtp.send_message(message)
 
-    return templates.TemplateResponse("registration_success.html", {"request": request})
+        return templates.TemplateResponse("registration_success.html", {"request": request})
 
 
 @app.get("/verify")
